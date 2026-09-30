@@ -9,6 +9,7 @@
   <style>
     :root{color-scheme:dark;--bg:#0f110e;--card:#1b1d18;--line:#464837;--text:#f8f5e9;--muted:#c8c6b5;--gold:#e7cf63;--green:#b4e3b6}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}a{color:var(--gold)}.wrap{max-width:940px;margin:auto;padding:28px 20px 64px}.brand{max-width:235px;height:auto;display:block;margin-bottom:28px}.hero{padding:18px 0 30px}.eyebrow{color:var(--gold);font-size:.8rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase}h1{font-size:clamp(2rem,5vw,3.25rem);line-height:1.12;letter-spacing:-.025em;margin:10px 0 16px;max-width:780px}h2{font-size:1.35rem;line-height:1.25;margin:0 0 10px}.lead{font-size:1.1rem;color:var(--muted);max-width:70ch;margin:0}.layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(250px,.8fr);gap:22px;align-items:start}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;margin-bottom:22px;box-shadow:0 12px 40px #0002}.card p:first-of-type{margin-top:0}.muted,.hint{color:var(--muted)}.hint{font-size:.84rem;margin:5px 0 14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}.date-grid{display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:10px}label{display:block;font-weight:650;font-size:.91rem;margin:16px 0 7px}input,select{display:block;width:100%;font:inherit;color:var(--text);background:#11130f;border:1px solid #777969;border-radius:9px;padding:11px 12px;min-height:46px}input:focus,select:focus,button:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}input::placeholder{color:#a8aa9c}button,.button{display:inline-block;border:0;border-radius:10px;padding:13px 18px;font:700 1rem system-ui,-apple-system,Segoe UI,sans-serif;text-align:center;text-decoration:none;cursor:pointer}.primary{width:100%;background:var(--gold);color:#181806;margin-top:22px}.secondary{width:100%;background:#25d366;color:#092a12;margin-top:16px}.button:hover,button:hover{filter:brightness(1.08)}[hidden]{display:none!important}.error{color:#ffb6a9;margin:12px 0 0}.result{border-left:5px solid var(--gold);background:#25261c;padding:17px;border-radius:9px;margin:14px 0}.result.good{border-left-color:var(--green);background:#183021}.result strong{display:block;font-size:1.18rem;margin-bottom:5px}.result p{margin:0}.small{font-size:.82rem}.side-list{margin:12px 0 0;padding-left:22px}.side-list li{margin-bottom:9px}.footer{border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.83rem}.notice{background:#2a291c;border-left:4px solid var(--gold);padding:12px 15px;border-radius:6px;margin:16px 0}.screen-reader{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:730px){.layout{grid-template-columns:1fr}.wrap{padding:20px 16px 46px}.card{padding:20px}}@media(max-width:430px){.grid{grid-template-columns:1fr}.date-grid{gap:7px}}
+    .label-row{display:flex;align-items:center;gap:9px;margin:16px 0 7px}.label-row label{margin:0}.info-trigger{flex:none;display:inline-grid;place-items:center;width:23px;height:23px;padding:0;border:1px solid var(--gold);border-radius:50%;background:transparent;color:var(--gold);font-size:.8rem;font-weight:800;line-height:1}.info-box{margin:10px 0 14px;padding:14px;border:1px solid var(--line);border-radius:9px;background:#28291f;color:var(--muted);font-size:.88rem}.info-box p{margin:0 0 8px}.info-box .button{width:auto;margin-top:6px;padding:10px 14px;font-size:.88rem}
   </style>
 </head>
 <body>
@@ -25,8 +26,8 @@
         <p class="muted small">Los datos se procesan en tu navegador. No se guardan ni se envían al calcular.</p>
         <form id="calculadora" novalidate>
           <div class="grid">
-            <div><label for="nombre">Nombre (opcional)</label><input id="nombre" type="text" maxlength="100" autocomplete="name" placeholder="Tu nombre"></div>
-            <div><label for="afp">Tu AFP (opcional)</label><select id="afp"><option value="">Selecciona si la conoces</option><option>Integra</option><option>Prima</option><option>Profuturo</option><option>Habitat</option></select></div>
+            <div><label for="nombre">Nombre completo</label><input id="nombre" type="text" maxlength="100" autocomplete="name" placeholder="Tu nombre completo" required></div>
+            <div><label for="afp">Tu AFP</label><select id="afp" required><option value="">Selecciona tu AFP</option><option>Integra</option><option>Prima</option><option>Profuturo</option><option>Habitat</option></select></div>
           </div>
           <label for="dia">Fecha de nacimiento</label>
           <div class="date-grid">
@@ -37,16 +38,20 @@
           <label for="categoria">Actividad con aportes complementarios</label>
           <select id="categoria"><option value="mineria">Minería</option><option value="construccion">Construcción civil</option><option value="ambos">Construcción civil y minería</option></select>
           <div id="solo-meses">
-            <label for="meses">Meses con aportes complementarios acreditados</label>
+            <div class="label-row"><label for="meses">Meses con aportes complementarios acreditados</label><button id="info-solo" class="info-trigger" type="button" aria-label="Ayuda sobre aportes complementarios" aria-controls="info-aportes" aria-expanded="false">?</button></div>
             <input id="meses" type="number" min="1" max="600" step="1" inputmode="numeric" placeholder="Ej.: 36">
-            <p class="hint">Cuenta los meses, no la suma de aportes del trabajador y del empleador. Si no conoces este dato, solicita ayuda abajo.</p>
           </div>
           <div id="dos-rubros" hidden>
+            <div class="label-row"><span>Meses con aportes complementarios por actividad</span><button id="info-ambos" class="info-trigger" type="button" aria-label="Ayuda sobre aportes complementarios" aria-controls="info-aportes" aria-expanded="false">?</button></div>
             <div class="grid">
               <div><label for="meses-construccion">Meses en construcción civil</label><input id="meses-construccion" type="number" min="0" max="600" step="1" inputmode="numeric" placeholder="Ej.: 36"></div>
               <div><label for="meses-mineria">Meses en minería</label><input id="meses-mineria" type="number" min="0" max="600" step="1" inputmode="numeric" placeholder="Ej.: 36"></div>
             </div>
-            <p class="hint">Ingresa meses con aportes complementarios acreditados en cada actividad. No cuentes un mismo mes dos veces.</p>
+          </div>
+          <div id="info-aportes" class="info-box" hidden>
+            <p>Cuenta los meses con aportes complementarios acreditados, no la suma de los aportes del trabajador y del empleador. Si trabajaste en ambos rubros, no cuentes el mismo mes dos veces.</p>
+            <p>¿No sabes cuántos meses tienes? Completa tu nombre, AFP y fecha de nacimiento y un asesor te ayudará a revisar tu estado de cuenta.</p>
+            <a id="whatsapp-aportes" class="button secondary" href="https://wa.me/51997349518" target="_blank" rel="noopener noreferrer">Escribir a un asesor</a>
           </div>
           <p id="error" class="error" role="alert" hidden></p>
           <button class="primary" type="submit">Ver estimación</button>
@@ -62,7 +67,7 @@
           <h2 id="titulo-ayuda">¿No sabes cuántos meses tienes?</h2>
           <p class="muted">Un asesor puede ayudarte a revisar el registro de aportes de tu AFP y los documentos de tu trabajo.</p>
           <a id="whatsapp-ayuda" class="button secondary" href="https://wa.me/51997349518?text=Hola%2C%20quisiera%20ayuda%20para%20revisar%20mis%20aportes%20complementarios%20y%20mi%20jubilaci%C3%B3n%20adelantada." target="_blank" rel="noopener noreferrer">Escribir a un asesor</a>
-          <p class="hint">Al pulsar, se abre WhatsApp con un mensaje que podrás revisar antes de enviarlo.</p>
+          <p class="hint">El mensaje incluirá el nombre, AFP, fecha de nacimiento y los aportes que ingresaste. Podrás revisarlo antes de enviarlo.</p>
         </section>
         <section class="card" aria-labelledby="titulo-como">
           <h2 id="titulo-como">Cómo se estima</h2>
@@ -111,12 +116,64 @@
         const value = Number(raw);
         return raw !== '' && Number.isInteger(value) && value >= (required ? 1 : 0) && value <= 600 ? value : null;
       }
+      function showError(message, field) {
+        $('error').textContent = message;
+        $('error').hidden = false;
+        $('resultado').hidden = true;
+        $(field).focus();
+      }
+      function basicError() {
+        if (!$('nombre').value.trim()) return ['Ingresa tu nombre completo.', 'nombre'];
+        if (!$('afp').value) return ['Selecciona tu AFP.', 'afp'];
+        if (!birthDate()) return ['Ingresa una fecha de nacimiento válida que no sea futura.', 'dia'];
+        return null;
+      }
+      function leadMessage(note) {
+        const name = $('nombre').value.trim();
+        const afp = $('afp').value;
+        const day = String(number('dia')).padStart(2, '0');
+        const month = String(number('mes')).padStart(2, '0');
+        const date = day + '/' + month + '/' + number('anio');
+        const category = $('categoria').value;
+        let activity = category === 'ambos' ? 'construcción civil y minería' : category === 'mineria' ? 'minería' : 'construcción civil';
+        let periods = '';
+        if (category === 'ambos') {
+          const construction = validMonths('meses-construccion', false);
+          const mining = validMonths('meses-mineria', false);
+          if (construction !== null) periods += construction + ' meses en construcción civil';
+          if (mining !== null) periods += (periods ? ' y ' : '') + mining + ' meses en minería';
+        } else {
+          const months = validMonths('meses', false);
+          if (months !== null) periods = months + ' meses en ' + activity;
+        }
+        return 'Hola, soy ' + name + '. Mi AFP es ' + afp + ' y mi fecha de nacimiento es ' + date + '. Trabajé en ' + activity + '. ' +
+          (periods ? 'Registré ' + periods + ' de aportes complementarios. ' : 'No conozco mis meses de aportes complementarios. ') + note;
+      }
+      function whatsappUrl(message) { return 'https://wa.me/' + WA + '?text=' + encodeURIComponent(message); }
+      for (const id of ['info-solo', 'info-ambos']) {
+        $(id).addEventListener('click', () => {
+          const opened = $('info-aportes').hidden;
+          $('info-aportes').hidden = !opened;
+          $('info-solo').setAttribute('aria-expanded', String(opened));
+          $('info-ambos').setAttribute('aria-expanded', String(opened));
+        });
+      }
+      for (const id of ['whatsapp-aportes', 'whatsapp-ayuda']) {
+        $(id).addEventListener('click', event => {
+          const problem = basicError();
+          if (problem) { event.preventDefault(); showError(...problem); return; }
+          $(id).href = whatsappUrl(leadMessage('¿Me pueden ayudar a revisar mis aportes y requisitos?'));
+        });
+      }
       $('categoria').addEventListener('change', () => {
         const both = $('categoria').value === 'ambos';
         $('dos-rubros').hidden = !both;
         $('solo-meses').hidden = both;
         $('resultado').hidden = true;
         $('error').hidden = true;
+        $('info-aportes').hidden = true;
+        $('info-solo').setAttribute('aria-expanded', 'false');
+        $('info-ambos').setAttribute('aria-expanded', 'false');
       });
       form.addEventListener('input', () => { $('resultado').hidden = true; $('error').hidden = true; });
       form.addEventListener('submit', event => {
@@ -126,10 +183,11 @@
         const construction = category === 'ambos' ? validMonths('meses-construccion', false) : category === 'construccion' ? validMonths('meses', true) : 0;
         const mining = category === 'ambos' ? validMonths('meses-mineria', false) : category === 'mineria' ? validMonths('meses', true) : 0;
         let message = '';
-        if (!birth) message = 'Ingresa una fecha de nacimiento válida que no sea futura.';
+        const problem = basicError();
+        if (problem) { showError(...problem); return; }
         else if (construction === null || mining === null || construction + mining === 0) message = 'Ingresa meses enteros de aportes complementarios entre 0 y 600; al menos uno debe ser mayor que cero.';
         else if (construction + mining > monthsOld(birth) - 16 * 12) message = 'Revisa los meses ingresados: superan el tiempo transcurrido desde los 16 años.';
-        if (message) { $('error').textContent = message; $('error').hidden = false; $('resultado').hidden = true; return; }
+        if (message) { showError(message, category === 'ambos' ? 'meses-construccion' : 'meses'); return; }
         const reduction = construction / 36 * 12 + mining / 36 * 24;
         const target = Math.max(0, 65 * 12 - reduction);
         const age = monthsOld(birth);
@@ -144,12 +202,8 @@
         const roundedTarget = Math.round(target);
         detail.textContent = 'Edad actual: ' + monthsText(age) + '. Adelanto estimado: ' + monthsText(roundedReduction) + '. Edad estimada de jubilación: ' + monthsText(roundedTarget) + '.' + (reached ? '' : ' Te faltarían aproximadamente ' + monthsText(Math.ceil(target - age)) + '.');
         result.append(title, detail);
-        const name = $('nombre').value.trim();
-        const afp = $('afp').value;
-        const greeting = name ? 'Hola, soy ' + name + '. ' : 'Hola. ';
-        const mention = afp ? 'Mi AFP es ' + afp + '. ' : '';
-        const text = greeting + mention + 'Usé la calculadora de jubilación adelantada y quisiera que un asesor verifique mis aportes y requisitos.';
-        $('whatsapp-resultado').href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent(text);
+        const status = reached ? 'alcancé la edad estimada' : 'todavía no alcancé la edad estimada';
+        $('whatsapp-resultado').href = whatsappUrl(leadMessage('La calculadora indica que ' + status + '. Quisiera que un asesor verifique mi caso.'));
         $('resultado').hidden = false;
         $('resultado').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
