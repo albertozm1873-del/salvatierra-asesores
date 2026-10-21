@@ -12,6 +12,7 @@
     .label-row{display:flex;align-items:center;gap:9px;margin:16px 0 7px}.label-row label{margin:0}.info-trigger{flex:none;display:inline-grid;place-items:center;width:23px;height:23px;padding:0;border:1px solid var(--gold);border-radius:50%;background:transparent;color:var(--gold);font-size:.8rem;font-weight:800;line-height:1}.info-box{margin:10px 0 14px;padding:14px;border:1px solid var(--line);border-radius:9px;background:#28291f;color:var(--muted);font-size:.88rem}.info-box p{margin:0 0 8px}.info-box .button{width:auto;margin-top:6px;padding:10px 14px;font-size:.88rem}
     /* Propuesta de contacto: conserva la identidad visual original. */
     .hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin:22px 0 10px;max-width:700px}.hero-actions .button{width:auto;margin:0;flex:1;min-width:220px}.outline{background:transparent;border:1px solid var(--gold);color:var(--gold)}.contact-note{margin:10px 0 0;max-width:70ch}.hero-disclaimer{margin:12px 0 0;max-width:78ch;font-size:.83rem;color:var(--muted)}.aporte-help{border:1px solid var(--line);border-radius:10px;padding:13px 14px;margin:14px 0;background:#22251b}.aporte-help p{margin:0 0 6px;font-size:.88rem}.aporte-help a{display:inline-block;font-weight:650;min-height:44px;padding:9px 0}.consult-card .secondary{margin-top:4px}.consult-card p{font-size:.92rem}.consult-card small{display:block;margin-top:12px;color:var(--muted)}#titulo-calculadora{scroll-margin-top:20px}@media(max-width:430px){.hero-actions{display:grid;gap:10px}.hero-actions .button{min-width:0;width:100%}.hero{padding-top:8px}.brand{margin-bottom:22px}.eyebrow{font-size:1.03rem}.hero-disclaimer{font-size:.8rem}}
+    .result .scenario{display:block;font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}.result.projection:not(.good){border-left-color:var(--gold);background:#2a291c}.result.projection:not(.good) strong{color:var(--gold)}.result p+p{margin-top:8px;font-size:.88rem;color:var(--muted)}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   </style>
 </head>
@@ -56,6 +57,9 @@
               <div><label for="meses-construccion">Meses en construcción civil</label><input id="meses-construccion" type="number" min="0" max="600" step="1" inputmode="numeric" placeholder="Ej.: 36"></div>
               <div><label for="meses-mineria">Meses en minería</label><input id="meses-mineria" type="number" min="0" max="600" step="1" inputmode="numeric" placeholder="Ej.: 36"></div>
             </div>
+            <label for="actividad-futura">Actividad en la que seguirías aportando (meses futuros)</label>
+            <select id="actividad-futura" aria-describedby="hint-actividad-futura"><option value="mineria">Minería</option><option value="construccion">Construcción civil</option></select>
+            <p id="hint-actividad-futura" class="hint">Solo se usa en la proyección «Si continúas trabajando y aportando»: los meses futuros se asignan únicamente a esta actividad.</p>
           </div>
           <div class="aporte-help">
             <p><strong>¿No sabes cuántos meses de aportes complementarios tienes?</strong></p>
@@ -72,6 +76,7 @@
         </form>
         <div id="resultado" aria-live="polite" hidden>
           <div id="resumen" class="result"></div>
+          <div id="proyeccion" class="result projection"></div>
           <p class="small muted">Esta estimación solo compara la edad actual con una edad reducida según los meses indicados. La AFP debe verificar los aportes y los demás requisitos aplicables; este resultado no confirma el derecho a una pensión.</p>
           <a id="whatsapp-resultado" class="button secondary" target="_blank" rel="noopener noreferrer">Consultar mi caso por WhatsApp</a>
         </div>
@@ -96,12 +101,69 @@
     </div>
     <footer class="footer">Salvatierra Asesores · Calculadora orientativa para Perú · Los resultados dependen de la verificación de la AFP y la normativa vigente.</footer>
   </main>
+  <script id="motor-calculo">
+    // Cálculo puro (sin DOM): fechas como {y, m, d} en calendario civil, sin horas ni zonas horarias.
+    (root => {
+      const BASE_MONTHS = 65 * 12;
+      const MAX_PROJECTION_MONTHS = 1200;
+      const daysInMonth = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+      function todayInLima(now = new Date()) {
+        const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+        const get = type => Number(parts.find(part => part.type === type).value);
+        return { y: get('year'), m: get('month'), d: get('day') };
+      }
+      const compareDates = (a, b) => (a.y - b.y) || (a.m - b.m) || (a.d - b.d);
+      function parseBirth(day, month, year, today) {
+        if (![day, month, year].every(Number.isInteger) || year < 1930 || year > today.y) return null;
+        if (month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) return null;
+        const value = { y: year, m: month, d: day };
+        return compareDates(value, today) > 0 ? null : value;
+      }
+      // Suma meses desde una fecha base; si el día no existe (31, 29/02), usa el último día del mes.
+      function addMonths(date, months) {
+        const total = date.y * 12 + (date.m - 1) + months;
+        const y = Math.floor(total / 12), m = total - y * 12 + 1;
+        return { y, m, d: Math.min(date.d, daysInMonth(y, m)) };
+      }
+      // Meses cumplidos entre el nacimiento y la fecha de referencia.
+      function monthsOld(birth, ref) {
+        let months = (ref.y - birth.y) * 12 + ref.m - birth.m;
+        if (ref.d < birth.d) months--;
+        return months;
+      }
+      const reductionMonths = (construction, mining) => construction / 36 * 12 + mining / 36 * 24;
+      const targetMonths = (construction, mining) => Math.max(0, BASE_MONTHS - reductionMonths(construction, mining));
+      function evaluate(birth, construction, mining, ref) {
+        const age = monthsOld(birth, ref);
+        const reduction = reductionMonths(construction, mining);
+        const target = targetMonths(construction, mining);
+        return { age, reduction, target, reached: age >= target };
+      }
+      // Cada mes futuro suma 1 mes de edad y 1 mes de aporte en la actividad elegida; devuelve el primer mes que alcanza la edad reducida.
+      function projectContinuing(birth, construction, mining, future, today) {
+        for (let k = 0; k <= MAX_PROJECTION_MONTHS; k++) {
+          const date = addMonths(today, k);
+          const c = construction + (future === 'construccion' ? k : 0);
+          const m = mining + (future === 'mineria' ? k : 0);
+          const state = evaluate(birth, c, m, date);
+          if (state.reached) return { ...state, monthsAhead: k, date, construction: c, mining: m };
+        }
+        return null;
+      }
+      const toUTC = date => new Date(Date.UTC(date.y, date.m - 1, date.d));
+      const formatMonthYear = date => new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(toUTC(date));
+      const formatFullDate = date => new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(toUTC(date));
+      root.CalculoJubilacion = { todayInLima, parseBirth, addMonths, monthsOld, reductionMonths, targetMonths, evaluate, projectContinuing, formatMonthYear, formatFullDate };
+    })(typeof window !== 'undefined' ? window : globalThis);
+  </script>
   <script>
     (() => {
       const $ = id => document.getElementById(id);
+      const calc = window.CalculoJubilacion;
       const form = $('calculadora');
       const number = id => Number($(id).value);
       const WA = '51997349518';
+      const ACTIVITY = { mineria: 'minería', construccion: 'construcción civil' };
       const monthsText = months => {
         const whole = Math.floor(months);
         const years = Math.floor(whole / 12);
@@ -111,35 +173,33 @@
         if (rest) parts.push(rest + ' mes' + (rest === 1 ? '' : 'es'));
         return parts.join(' y ') || '0 meses';
       };
-      function birthDate() {
-        const day = number('dia'), month = number('mes'), year = number('anio');
-        const today = new Date();
-        if (![day, month, year].every(Number.isInteger) || year < 1930 || year > today.getFullYear()) return null;
-        const value = new Date(year, month - 1, day);
-        if (value.getFullYear() !== year || value.getMonth() !== month - 1 || value.getDate() !== day || value > today) return null;
-        return value;
+      function birthDate(today) {
+        return calc.parseBirth(number('dia'), number('mes'), number('anio'), today);
       }
-      function monthsOld(birth) {
-        const today = new Date();
-        let months = (today.getFullYear() - birth.getFullYear()) * 12 + today.getMonth() - birth.getMonth();
-        if (today.getDate() < birth.getDate()) months--;
-        return months;
+      function futureActivity() {
+        return $('categoria').value === 'ambos' ? $('actividad-futura').value : 'mineria';
       }
       function validMonths(id, required) {
         const raw = $(id).value.trim();
         const value = Number(raw);
         return raw !== '' && Number.isInteger(value) && value >= (required ? 1 : 0) && value <= 600 ? value : null;
       }
+      function hideResult() {
+        $('resultado').hidden = true;
+        $('resumen').replaceChildren();
+        $('proyeccion').replaceChildren();
+        $('whatsapp-resultado').removeAttribute('href');
+      }
       function showError(message, field) {
         $('error').textContent = message;
         $('error').hidden = false;
-        $('resultado').hidden = true;
+        hideResult();
         $(field).focus();
       }
-      function basicError() {
+      function basicError(today) {
         if (!$('nombre').value.trim()) return ['Ingresa tu nombre completo.', 'nombre'];
         if (!$('afp').value) return ['Selecciona tu AFP.', 'afp'];
-        if (!birthDate()) return ['Ingresa una fecha de nacimiento válida que no sea futura.', 'dia'];
+        if (!birthDate(today)) return ['Ingresa una fecha de nacimiento válida que no sea futura.', 'dia'];
         return null;
       }
       function leadMessage(note) {
@@ -164,6 +224,20 @@
           (periods ? 'Registré ' + periods + ' de aportes complementarios. ' : 'No conozco mis meses de aportes complementarios. ') + note;
       }
       function whatsappUrl(message) { return 'https://wa.me/' + WA + '?text=' + encodeURIComponent(message); }
+      function card(element, scenario, title, lines, good) {
+        element.classList.toggle('good', good);
+        const label = document.createElement('span');
+        label.className = 'scenario';
+        label.textContent = scenario;
+        const heading = document.createElement('strong');
+        heading.textContent = title;
+        element.replaceChildren(label, heading);
+        for (const line of lines) {
+          const paragraph = document.createElement('p');
+          paragraph.textContent = line;
+          element.append(paragraph);
+        }
+      }
       for (const id of ['info-solo', 'info-ambos']) {
         $(id).addEventListener('click', () => {
           const opened = $('info-aportes').hidden;
@@ -176,41 +250,49 @@
         const both = $('categoria').value === 'ambos';
         $('dos-rubros').hidden = !both;
         $('solo-meses').hidden = both;
-        $('resultado').hidden = true;
+        hideResult();
         $('error').hidden = true;
         $('info-aportes').hidden = true;
         $('info-solo').setAttribute('aria-expanded', 'false');
         $('info-ambos').setAttribute('aria-expanded', 'false');
       });
-      form.addEventListener('input', () => { $('resultado').hidden = true; $('error').hidden = true; });
+      for (const type of ['input', 'change']) form.addEventListener(type, () => { hideResult(); $('error').hidden = true; });
       form.addEventListener('submit', event => {
         event.preventDefault();
-        const birth = birthDate();
+        const today = calc.todayInLima();
+        const birth = birthDate(today);
         const category = $('categoria').value;
         const construction = category === 'ambos' ? validMonths('meses-construccion', false) : category === 'construccion' ? validMonths('meses', true) : 0;
         const mining = category === 'ambos' ? validMonths('meses-mineria', false) : category === 'mineria' ? validMonths('meses', true) : 0;
         let message = '';
-        const problem = basicError();
+        const problem = basicError(today);
         if (problem) { showError(...problem); return; }
         else if (construction === null || mining === null || construction + mining === 0) message = 'Ingresa meses enteros de aportes complementarios entre 0 y 600; al menos uno debe ser mayor que cero.';
-        else if (construction + mining > monthsOld(birth) - 16 * 12) message = 'Revisa los meses ingresados: superan el tiempo transcurrido desde los 16 años.';
+        else if (construction + mining > calc.monthsOld(birth, today) - 16 * 12) message = 'Revisa los meses ingresados: superan el tiempo transcurrido desde los 16 años.';
         if (message) { showError(message, category === 'ambos' ? 'meses-construccion' : 'meses'); return; }
-        const reduction = construction / 36 * 12 + mining / 36 * 24;
-        const target = Math.max(0, 65 * 12 - reduction);
-        const age = monthsOld(birth);
-        const reached = age >= target;
-        const result = $('resumen');
-        result.classList.toggle('good', reached);
-        result.replaceChildren();
-        const title = document.createElement('strong');
-        title.textContent = reached ? 'Ya alcanzaste la edad estimada' : 'Todavía no alcanzas la edad estimada';
-        const detail = document.createElement('p');
+        const { age, reduction, target, reached } = calc.evaluate(birth, construction, mining, today);
         const roundedReduction = Math.round(reduction);
         const roundedTarget = Math.round(target);
-        detail.textContent = 'Edad actual: ' + monthsText(age) + '. Adelanto estimado: ' + monthsText(roundedReduction) + '. Edad estimada de jubilación: ' + monthsText(roundedTarget) + '.' + (reached ? '' : ' Te faltarían aproximadamente ' + monthsText(Math.ceil(target - age)) + '.');
-        result.append(title, detail);
+        card($('resumen'), 'Si no realizas más aportes complementarios',
+          reached ? 'Ya alcanzaste la edad estimada' : 'Todavía no alcanzas la edad estimada',
+          ['Edad actual: ' + monthsText(age) + '. Adelanto estimado: ' + monthsText(roundedReduction) + '. Edad estimada de jubilación: ' + monthsText(roundedTarget) + '.' + (reached ? '' : ' Te faltarían aproximadamente ' + monthsText(Math.ceil(target - age)) + '.')],
+          reached);
+        const future = futureActivity();
+        const projection = reached ? null : calc.projectContinuing(birth, construction, mining, future, today);
+        const assumption = 'Supone aportes complementarios mensuales continuos, acreditados en ' + ACTIVITY[future] + ', desde este mes. Es una proyección orientativa, sujeta a verificación de la AFP.';
+        let projectionNote = '';
+        if (reached) {
+          card($('proyeccion'), 'Si continúas trabajando y aportando', 'Ya alcanzas la edad estimada',
+            ['Fecha de referencia: ' + calc.formatFullDate(today) + ' (hora de Lima). No es necesario proyectar más aportes para alcanzar la edad estimada.'], true);
+        } else if (projection) {
+          const when = calc.formatMonthYear(projection.date);
+          card($('proyeccion'), 'Si continúas trabajando y aportando', 'Alcanzarías la edad estimada hacia ' + when,
+            ['Edad que tendrías: ' + monthsText(projection.age) + '. Tiempo restante: aproximadamente ' + monthsText(projection.monthsAhead) + '. Adelanto proyectado: ' + monthsText(Math.round(projection.reduction)) + '.', assumption], false);
+          projectionNote = ' Si continúo aportando en ' + ACTIVITY[future] + ', la proyección indica aproximadamente ' + when + '.';
+        }
+        $('proyeccion').hidden = !reached && !projection;
         const status = reached ? 'alcancé la edad estimada' : 'todavía no alcancé la edad estimada';
-        $('whatsapp-resultado').href = whatsappUrl(leadMessage('La calculadora indica que ' + status + '. Quisiera que un asesor verifique mi caso.'));
+        $('whatsapp-resultado').href = whatsappUrl(leadMessage('La calculadora indica que ' + status + '.' + projectionNote + ' Quisiera que un asesor verifique mi caso.'));
         $('resultado').hidden = false;
         $('resultado').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
